@@ -9,99 +9,68 @@ namespace LinenAndBird.DataAccess
 {
     public class BirdRepository
     {
-        static List<Bird> _birds = new List<Bird>
-        {
-            new Bird
-            {
-                Id = Guid.NewGuid(),
-                Name = "Jimmy",
-                Color = "Red",
-                Size = "Small",
-                Type = BirdType.Dead,
-                Accessories = new List<string> { "Beanie", "Gold wing tips" }
-            }
-        };
 
-        //internal IEnumerable<Bird> GetAll()
-        //{
-        //    return _birds;
-        //}
+        const string _connectionString = "Server=localhost;Database=LinenAndBird;Trusted_Connection=True;";
 
         internal IEnumerable<Bird> GetAll()
         {
-            // connections are like the tunnel between our app and the database
-            using var connection = new SqlConnection("Server=localhost;Database=LinenAndBird;Trusted_Connection=True;");
-
-            // connections aren't open by default, we've gotta do that ourself
+            //connections are like the tunnel between our app and the database
+            using var connection = new SqlConnection(_connectionString);
+            //connections aren't open by default, we've gotta do that ourself
             connection.Open();
 
-            // this tells SQL what we want to do
-            var command = connection.CreateCommand(); // creating a command that is automatically being sent down the pipe
+            //this is what tells sql what we want to do
+            var command = connection.CreateCommand();
             command.CommandText = @"Select *
                                     From Birds";
 
-            // Execute.Reader is for when we care about getting all the results of our query
+            //execute reader is for when we care about getting all the results of our query
             var reader = command.ExecuteReader();
 
             var birds = new List<Bird>();
 
-            // data readers are weird, only get one row from the results at a time
-            while(reader.Read())
+            //data readers are weird, only get one row from the results at a time
+            while (reader.Read())
             {
-                var bird = new Bird();
-                bird.Id = reader.GetGuid(0);
-                bird.Size = reader["Size"].ToString(); // more readable but harder to work with
-                bird.Type = (BirdType)reader["Type"];
-                bird.Name = reader["Name"].ToString();
-                bird.Color = reader["Color"].ToString();
+                var bird = MapFromReader(reader);
 
+                //each bird goes in the list to return later
                 birds.Add(bird);
             }
 
             return birds;
         }
 
-        internal void Add(Bird newBird)
+        internal Bird Update(Guid id, Bird bird)
         {
-            newBird.Id = Guid.NewGuid();
-
-            _birds.Add(newBird);
-        }
-
-        //internal Bird GetById(Guid birdId)
-        //{
-        //    return _birds.FirstOrDefault(bird => bird.Id == birdId);
-        //}
-
-        internal Bird GetById(Guid birdId)
-        {
-            using var connection = new SqlConnection("Server=localhost;Database=LinenAndBird;Trusted_Connection=True;");
+            using var connection = new SqlConnection(_connectionString);
             connection.Open();
 
-            var command = connection.CreateCommand(); // creating a command that is automatically being sent down the pipe
-            command.CommandText = $@"Select *
-                                    From Birds
-                                    Where id = @id";
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = @"update Birds 
+                                Set Color = @color,
+                                    Name = @name,
+	                                Type = @type,
+	                                Size = @size
+                                output inserted.*
+                                Where id = @id";
 
-            // parameterization prevents SQL injection (little bobby tables)
-            command.Parameters.AddWithValue("id",birdId);
+            //bird comes from the http request in the controller
+            cmd.Parameters.AddWithValue("Type", bird.Type);
+            cmd.Parameters.AddWithValue("Color", bird.Color);
+            cmd.Parameters.AddWithValue("Size", bird.Size);
+            cmd.Parameters.AddWithValue("Name", bird.Name);
+            cmd.Parameters.AddWithValue("id", id);
 
-            var reader = command.ExecuteReader();
+            var reader = cmd.ExecuteReader();
 
             if (reader.Read())
             {
-                var bird = new Bird();
-                bird.Id = reader.GetGuid(0);
-                bird.Size = reader["Size"].ToString(); // more readable but harder to work with
-                bird.Type = (BirdType)reader["Type"];
-                bird.Name = reader["Name"].ToString();
-                bird.Color = reader["Color"].ToString();
-
-                return bird;
+                var updatedBird = MapFromReader(reader);
+                return updatedBird;
             }
 
             return null;
-            //return _birds.FirstOrDefault(bird => bird.Id == birdId);
         }
 
         internal void Remove(Guid id)
@@ -117,6 +86,71 @@ namespace LinenAndBird.DataAccess
             cmd.Parameters.AddWithValue("id", id);
 
             cmd.ExecuteNonQuery();
+        }
+
+        internal void Add(Bird newBird)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = @"insert into birds(Type,Color,Size,Name)
+                                output inserted.Id
+                                values (@Type,@Color,@Size,@Name)";
+
+            cmd.Parameters.AddWithValue("Type", newBird.Type);
+            cmd.Parameters.AddWithValue("Color", newBird.Color);
+            cmd.Parameters.AddWithValue("Size", newBird.Size);
+            cmd.Parameters.AddWithValue("Name", newBird.Name);
+
+            //execute the query, but don't care about the results, just number of rows
+            //var numberOfRowsAffected = cmd.ExecuteNonQuery();
+
+            //execute the query and only get the id of the new row
+            var newId = (Guid)cmd.ExecuteScalar();
+
+            newBird.Id = newId;
+        }
+
+        internal Bird GetById(Guid birdId)
+        {
+            //connections are like the tunnel between our app and the database
+            using var connection = new SqlConnection(_connectionString);
+            //connections aren't open by default, we've gotta do that ourself
+            connection.Open();
+
+            //this is what tells sql what we want to do
+            var command = connection.CreateCommand();
+            command.CommandText = @"Select *
+                                    From Birds
+                                    where id = @id";
+
+            //parameterization prevents sql injection (little bobby tables)
+            command.Parameters.AddWithValue("id", birdId);
+
+            //execute reader is for when we care about getting all the results of our query
+            var reader = command.ExecuteReader();
+
+            if (reader.Read())
+            {
+                return MapFromReader(reader);
+            }
+
+            return null;
+
+            //return _birds.FirstOrDefault(bird => bird.Id == birdId);
+        }
+
+        Bird MapFromReader(SqlDataReader reader)
+        {
+            var bird = new Bird();
+            bird.Id = reader.GetGuid(0);
+            bird.Size = reader["Size"].ToString();
+            bird.Type = (BirdType)reader["Type"];
+            bird.Color = reader["Color"].ToString();
+            bird.Name = reader["Name"].ToString();
+
+            return bird;
         }
     }
 }
