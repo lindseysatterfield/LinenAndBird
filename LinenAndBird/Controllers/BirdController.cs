@@ -1,11 +1,91 @@
-﻿using LinenAndBird.DataAccess;
+﻿//using LinenAndBird.DataAccess;
+//using LinenAndBird.Models;
+//using Microsoft.AspNetCore.Http;
+//using Microsoft.AspNetCore.Mvc;
+//using System;
+//using System.Collections.Generic;
+//using System.Linq;
+//using System.Threading.Tasks;
+
+//namespace LinenAndBird.Controllers
+//{
+//    [Route("api/birds")]
+//    [ApiController]
+//    public class BirdController : ControllerBase
+//    {
+//        private BirdRepository _repo;
+
+//        public BirdController()
+//        {
+//            _repo = new BirdRepository();
+//        }
+
+//        [HttpGet]
+//        //public IEnumerable<Bird> GetAllBirds()
+//        //{
+//        //    return _repo.GetAll();
+//        //}
+//        public IActionResult GetAllBirds()
+//        {
+//            return Ok(_repo.GetAll());
+//        }
+
+//        [HttpGet("{id}")]
+//        public IActionResult GetBirdById(Guid id)
+//        {
+//            var bird = _repo.GetById(id);
+
+//            if (bird == null)
+//            {
+//                return NotFound($"No bird with the id {id} was found.");
+//            }
+
+//            return Ok(bird);
+//        }
+
+//        [HttpPost]
+//        public IActionResult AddBird(Bird newBird)
+//        {
+//            if (string.IsNullOrEmpty(newBird.Name) || string.IsNullOrEmpty(newBird.Color))
+//            {
+//                return BadRequest("Name and Color are required fields");
+//            }
+
+//            _repo.Add(newBird);
+
+//            return Created($"/api/birds/{newBird.Id}", newBird);
+//        }
+
+//        [HttpDelete("{id}")]
+//        public IActionResult DeleteBird(Guid id)
+//        {
+//            _repo.Remove(id);
+
+//            return Ok();
+//        }
+
+//        [HttpPut("{id")]
+//        public IActionResult UpdateBird(Guid id, Bird bird)
+//        {
+//            var birdToUpdate = _repo.GetById(id);
+
+//            if (birdToUpdate == null)
+//            {
+//                return NotFound($"Could not find bird with the id {id} for updating");
+//            }
+
+//            var updatedBird = _repo.Update(id, bird);
+
+//            return Ok(updatedBird);
+//        }
+//    }
+//}
+
+using LinenAndBird.DataAccess;
 using LinenAndBird.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace LinenAndBird.Controllers
 {
@@ -13,7 +93,7 @@ namespace LinenAndBird.Controllers
     [ApiController]
     public class BirdController : ControllerBase
     {
-        private BirdRepository _repo;
+        BirdRepository _repo;
 
         public BirdController()
         {
@@ -21,10 +101,6 @@ namespace LinenAndBird.Controllers
         }
 
         [HttpGet]
-        //public IEnumerable<Bird> GetAllBirds()
-        //{
-        //    return _repo.GetAll();
-        //}
         public IActionResult GetAllBirds()
         {
             return Ok(_repo.GetAll());
@@ -33,10 +109,11 @@ namespace LinenAndBird.Controllers
         [HttpGet("{id}")]
         public IActionResult GetBirdById(Guid id)
         {
-            var bird = _repo.GetBirdById(id);
+            var bird = _repo.GetById(id);
+
             if (bird == null)
             {
-                return NotFound($"No bird with the id {id} was found")
+                return NotFound($"No bird with the id {id} was found.");
             }
 
             return Ok(bird);
@@ -49,10 +126,35 @@ namespace LinenAndBird.Controllers
             {
                 return BadRequest("Name and Color are required fields");
             }
-            
+
             _repo.Add(newBird);
 
-            return Created("/api/birds/1", newBird);
+            return Created($"/api/birds/{newBird.Id}", newBird);
+        }
+
+        //api/birds/{id}
+        [HttpDelete("{id}")]
+        public IActionResult DeleteBird(Guid id)
+        {
+            _repo.Remove(id);
+
+            return Ok();
+        }
+
+        //api/birds/{id}
+        [HttpPut("{id}")]
+        public IActionResult UpdateBird(Guid id, Bird bird)
+        {
+            var birdToUpdate = _repo.GetById(id);
+
+            if (birdToUpdate == null)
+            {
+                return NotFound($"Could not find bird with the id {id} for updating");
+            }
+
+            var updatedBird = _repo.Update(id, bird);
+
+            return Ok(updatedBird);
         }
     }
 }
