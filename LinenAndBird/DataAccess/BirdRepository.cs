@@ -103,5 +103,20 @@ namespace LinenAndBird.DataAccess
             return null;
             //return _birds.FirstOrDefault(bird => bird.Id == birdId);
         }
+
+        internal void Remove(Guid id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = @"Delete 
+                                From Birds 
+                                Where Id = @id";
+
+            cmd.Parameters.AddWithValue("id", id);
+
+            cmd.ExecuteNonQuery();
+        }
     }
 }

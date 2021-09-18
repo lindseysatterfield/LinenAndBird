@@ -155,6 +155,7 @@ namespace LinenAndBird.Controllers
             var updatedBird = _repo.Update(id, bird);
 
             return Ok(updatedBird);
+
         }
     }
 }
